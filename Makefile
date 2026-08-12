@@ -4,7 +4,7 @@ CC = cc
 
 CFLAGS = -Wall -Wextra -Werror -g
 
-FILES = main.c
+FILES = main.c parcing.c
 
 OBJ = $(FILES:.c=.o)
 
