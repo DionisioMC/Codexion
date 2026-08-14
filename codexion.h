@@ -6,7 +6,7 @@
 /*   By: dcoelho <dcoelho@student.42porto.com>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/01 11:38:44 by dcoelho           #+#    #+#             */
-/*   Updated: 2026/08/12 16:39:34 by dcoelho          ###   ########.fr       */
+/*   Updated: 2026/08/14 14:24:00 by dcoelho          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -32,7 +32,7 @@ typedef struct s_setting
 typedef struct s_dongle
 {
 	int				id;
-	int				cooldown
+	int				cooldown;
 }	t_dongle;
 
 typedef struct s_coder
@@ -52,7 +52,7 @@ typedef struct s_list
 	struct s_list	*prev;
 }	t_list;
 
-t_list		*ft_lstnew(t_coder *content);
+t_list		*ft_lstnew(void *content);
 void		ft_lstadd_front(t_list **lst, t_list *new);
 int			ft_atoi(const char *nptr);
 t_settings	*parser(int argc, char **argv);
