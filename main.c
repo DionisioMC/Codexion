@@ -6,70 +6,60 @@
 /*   By: dcoelho <dcoelho@student.42porto.com>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/01 11:36:56 by dcoelho           #+#    #+#             */
-/*   Updated: 2026/08/14 14:56:29 by dcoelho          ###   ########.fr       */
+/*   Updated: 2026/08/18 17:27:59 by dcoelho          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "codexion.h"
 
-t_list	*ft_lstnew(void *content)
+t_dongle	*gen_dongle(int i)
 {
-	t_list	*new;
-
-	new = (t_list *)malloc(sizeof(t_list));
-	if (!new)
-		return (NULL);
-	new->content = content;
-	new->next = NULL;
-	return (new);
-}
-
-void	ft_lstadd_front(t_list **lst, t_list *new)
-{
-	if (lst && new)
-	{
-		new->next = *lst;
-		*lst = new;
-	}
-}
-
-void	ft_lstclear(t_list **lst)
-{
-	t_list	*current;
-	t_list	*next;
-
-	if (lst)
-	{
-		current = *lst;
-		while (current)
-		{
-			next = current->next;
-			free(current->content);
-			free(current);
-			current = next;
-		}
-		*lst = NULL;
-	}
-}
-
-void	gen_coders_and_dongles(t_list **coders, t_list **dongles,
-	t_settings *config)
-{
-	int			i;
-	t_coder		*coder;
 	t_dongle	*dongle;
 
+	dongle = (t_dongle *) malloc(sizeof(t_dongle));
+	dongle->id = i + 1;
+	return (dongle);
+}
+
+void	gen_coders_and_dongles(t_coder *coders, t_settings *config)
+{
+	int				i;
+	t_coder			coder;
+	struct timeval	time;
+
 	i = 0;
-	*coders = NULL;
-	*dongles = NULL;
 	while (i < config->number_of_coders)
 	{
-		coder = malloc(sizeof(t_coder));
-		coder->number = i + 1;
-		ft_lstadd_front(coders, ft_lstnew(coder));
-		dongle = malloc(sizeof(t_dongle));
-		dongle->id = i + 1;
-		ft_lstadd_front(dongles, ft_lstnew(dongle));
+		coder.number = i + 1;
+		gettimeofday(&time, NULL);
+		coder.last_compile_start = time.tv_sec;
+		coder.compile_count = 0;
+		coder.l_dongle = NULL;
+		coder.r_dongle = gen_dongle(i);
+		if (i != (config->number_of_coders - 1) && config->number_of_coders > 1)
+			coder.l_dongle = coders[i - 1].r_dongle;
+		else if (config->number_of_coders > 1)
+		{
+			coder.l_dongle = coders[i - 1].r_dongle;
+			coders[0].l_dongle = coder.r_dongle;
+		}
+		coders[i] = coder;
+		i++;
+	}
+}
+
+void	print_coders(t_coder *coders, int number_of_coders)
+{
+	int	i;
+
+	i = 0;
+	while (i < number_of_coders)
+	{
+		printf("Coder %d:\n", coders[i].number);
+		printf("  last_compile_start: %ld\n", coders[i].last_compile_start);
+		printf("  compile_count: %d\n", coders[i].compile_count);
+		printf("  l_dongle: %p\n", (void *)coders[i].l_dongle);
+		printf("  r_dongle: %p\n", (void *)coders[i].r_dongle);
 		i++;
 	}
 }
@@ -77,24 +67,22 @@ void	gen_coders_and_dongles(t_list **coders, t_list **dongles,
 int	main(int argc, char **argv)
 {
 	t_settings	*config;
-	t_list		**coders;
-	t_list		**dongles;
+	t_coder		*coders;
 
 	config = parser(argc, argv);
-	coders = (t_list **)malloc(sizeof(t_list *));
-	dongles = (t_list **)malloc(sizeof(t_list *));
-	if (coders && dongles)
+	coders = (t_coder *)malloc(sizeof(t_coder) * config->number_of_coders);
+	if (coders)
 	{
-		gen_coders_and_dongles(coders, dongles, config);
+		gen_coders_and_dongles(coders, config);
+		print_coders(coders, config->number_of_coders);
 		free(config);
-		ft_lstclear(coders);
-		ft_lstclear(dongles);
 		free(coders);
-		free(dongles);
 	}
 	else
 	{
 		free(config);
+		if (coders)
+			free(coders);
 		exit(1);
 	}
 }

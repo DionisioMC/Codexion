@@ -6,7 +6,7 @@
 /*   By: dcoelho <dcoelho@student.42porto.com>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/01 11:38:44 by dcoelho           #+#    #+#             */
-/*   Updated: 2026/08/14 14:24:00 by dcoelho          ###   ########.fr       */
+/*   Updated: 2026/08/18 14:57:24 by dcoelho          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,6 +16,9 @@
 # include <stdlib.h>
 # include <pthread.h>
 # include <string.h>
+# include <time.h>
+# include <sys/resource.h>
+# include <sys/time.h>
 
 typedef struct s_setting
 {
@@ -38,7 +41,7 @@ typedef struct s_dongle
 typedef struct s_coder
 {
 	int			number;
-	int			last_compile_start;
+	time_t		last_compile_start;
 	int			compile_count;
 	pthread_t	thread;
 	t_dongle	*l_dongle;
@@ -56,5 +59,7 @@ t_list		*ft_lstnew(void *content);
 void		ft_lstadd_front(t_list **lst, t_list *new);
 int			ft_atoi(const char *nptr);
 t_settings	*parser(int argc, char **argv);
+void		arg_error(void);
+void		error_and_exit(t_settings *config);
 
 #endif

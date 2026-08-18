@@ -6,45 +6,95 @@
 /*   By: dcoelho <dcoelho@student.42porto.com>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/12 15:01:55 by dcoelho           #+#    #+#             */
-/*   Updated: 2026/08/12 16:35:57 by dcoelho          ###   ########.fr       */
+/*   Updated: 2026/08/17 17:00:41 by dcoelho          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "codexion.h"
 
-void	arg_error(void)
+long	ft_atol(const char *nptr)
 {
-	printf("Incorrect usage\n");
-	printf("Usage: ./codexion number_of_coders time_to_burnout "
-		"time_to_compile time_to_debug time_to_refactor "
-		"number_of_compiles_required dongle_cooldown scheduler\n");
-	exit(1);
+	long	i;
+	long	signal;
+
+	i = 0;
+	signal = 1;
+	while ((*nptr >= 9 && *nptr <= 13) || *nptr == 32)
+		nptr++;
+	if (*nptr == '+' || *nptr == '-')
+	{
+		if (*nptr == '-')
+			signal *= -1;
+		nptr++;
+	}
+	while (*nptr >= '0' && *nptr <= '9')
+	{
+		i = i * 10 + *nptr - 48;
+		nptr++;
+	}
+	return (i * signal);
+}
+
+int	is_valid_number(char *s)
+{
+	int		i;
+	long	num;
+
+	i = 0;
+	num = ft_atol(s);
+	while (s[i])
+	{
+		if (s[i] == '-' || s[i] == '+')
+		{
+			i++;
+			continue ;
+		}
+		else if (s[i] < 48 || s[i] > 57)
+		{
+			return (0);
+		}
+		i++;
+	}
+	if (num < 0 || num > 2147483647)
+	{
+		return (0);
+	}
+	return (1);
+}
+
+void	parse_verify(t_settings *config, char **argv)
+{
+	int	*fields[7];
+	int	i;
+
+	fields[0] = &config->number_of_coders;
+	fields[1] = &config->time_to_burnout;
+	fields[2] = &config->time_to_compile;
+	fields[3] = &config->time_to_debug;
+	fields[4] = &config->time_to_refactor;
+	fields[5] = &config->number_of_compiles_required;
+	fields[6] = &config->dongle_cooldown;
+	i = 0;
+	while (i < 7)
+	{
+		if (!is_valid_number(argv[i + 1]))
+			error_and_exit(config);
+		*fields[i] = (int)ft_atol(argv[i + 1]);
+		i++;
+	}
+	if (!strcmp(argv[8], "fifo") || !strcmp(argv[8], "edf"))
+		config->scheduler = argv[8];
+	else
+		error_and_exit(config);
 }
 
 t_settings	*parser(int argc, char **argv)
 {
 	t_settings	*config;
 
-	config = malloc(sizeof(t_settings));
 	if (argc -1 != 8)
 		arg_error();
-	if (argv[1] > 0)
-		config->number_of_coders = atoi(argv[1]);
-	else if (argv[2] > 0)
-		config->time_to_burnout = atoi(argv[2]);
-	else if (argv[3] > 0)
-		config->time_to_compile = atoi(argv[3]);
-	else if (argv[4] > 0)
-		config->time_to_debug = atoi(argv[4]);
-	else if (argv[5] > 0)
-		config->time_to_refactor = atoi(argv[5]);
-	else if (argv[6] > 0)
-		config->number_of_compiles_required = atoi(argv[6]);
-	else if (argv[7] > 0)
-		config->dongle_cooldown = atoi(argv[7]);
-	else if (strcmp(argv[8], "fifo") && strcmp(argv[8], "edf"))
-		config->scheduler = argv[8];
-	else
-		exit(1);
+	config = malloc(sizeof(t_settings));
+	parse_verify(config, argv);
 	return (config);
 }
