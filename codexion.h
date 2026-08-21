@@ -6,7 +6,7 @@
 /*   By: dcoelho <dcoelho@student.42porto.com>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/01 11:38:44 by dcoelho           #+#    #+#             */
-/*   Updated: 2026/08/18 14:57:24 by dcoelho          ###   ########.fr       */
+/*   Updated: 2026/08/21 15:55:41 by dcoelho          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -43,23 +43,30 @@ typedef struct s_coder
 	int			number;
 	time_t		last_compile_start;
 	int			compile_count;
-	pthread_t	thread;
+	pthread_t	*thread;
 	t_dongle	*l_dongle;
 	t_dongle	*r_dongle;
 }	t_coder;
 
-typedef struct s_list
+typedef struct s_simulation
 {
-	t_coder			*content;
-	struct s_list	*next;
-	struct s_list	*prev;
-}	t_list;
+	t_settings	*config;
+	t_coder		*coders;
+	long		start_time;
+	
+}	t_simulation;
 
-t_list		*ft_lstnew(void *content);
-void		ft_lstadd_front(t_list **lst, t_list *new);
-int			ft_atoi(const char *nptr);
+typedef struct s_work
+{
+	t_coder			*coder;
+	t_simulation	*sim;
+}	t_work;
+
 t_settings	*parser(int argc, char **argv);
 void		arg_error(void);
 void		error_and_exit(t_settings *config);
+void		*coder_thread(void *work);
+void		gen_coder_threads(t_coder *coders, t_settings *config);
+long		get_time_ms(void);
 
 #endif
