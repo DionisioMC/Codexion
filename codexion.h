@@ -6,7 +6,7 @@
 /*   By: dcoelho <dcoelho@student.42porto.com>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/01 11:38:44 by dcoelho           #+#    #+#             */
-/*   Updated: 2026/08/21 15:55:41 by dcoelho          ###   ########.fr       */
+/*   Updated: 2026/08/21 17:07:38 by dcoelho          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -53,7 +53,6 @@ typedef struct s_simulation
 	t_settings	*config;
 	t_coder		*coders;
 	long		start_time;
-	
 }	t_simulation;
 
 typedef struct s_work

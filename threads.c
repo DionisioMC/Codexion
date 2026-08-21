@@ -6,7 +6,7 @@
 /*   By: dcoelho <dcoelho@student.42porto.com>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/21 12:07:29 by dcoelho           #+#    #+#             */
-/*   Updated: 2026/08/21 16:39:13 by dcoelho          ###   ########.fr       */
+/*   Updated: 2026/08/21 17:08:47 by dcoelho          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,7 +26,7 @@ void	gen_coder_threads(t_coder *coders, t_settings *config)
 {
 	int				i;
 	t_simulation	sim;
-	t_work  work[config->number_of_coders];
+	t_work			*work;
 	pthread_t		thread;
 
 	i = 0;
