@@ -6,37 +6,113 @@
 /*   By: dcoelho <dcoelho@student.42porto.com>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/21 12:07:29 by dcoelho           #+#    #+#             */
-/*   Updated: 2026/08/21 17:08:47 by dcoelho          ###   ########.fr       */
+/*   Updated: 2026/08/26 12:26:03 by dcoelho          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "codexion.h"
 
-void	*coder_thread(void *work)
+void	*coder_thread(void *coder)
 {
-	t_work	*work_original;
+	t_coder	*coder_original;
 
-	work_original = (t_work *) work;
-	work_original->coder->last_compile_start = get_time_ms();
-	printf("%ld\n", work_original->coder->last_compile_start);
+	coder_original = (t_coder *) coder;
+	while (coder_original->compile_count
+		< coder_original->sim->number_of_compiles_required)
+	{
+		if (coder_original->task == COMPILE)
+		{
+			printf("%ld %d is compiling\n",
+				get_time_ms() - coder_original->sim->start_time,
+				coder_original->number);
+			coder_original->last_compile_start = get_time_ms();
+			coder_original->compile_count++;
+			coder_original->task = DEBUG;
+		}
+		else if (coder_original->task == DEBUG)
+		{
+			printf("%ld %d is debbuging\n",
+				get_time_ms() - coder_original->sim->start_time,
+				coder_original->number);
+			coder_original->task = REFACTOR;
+		}
+		else if (coder_original->task == REFACTOR)
+		{
+			printf("%ld %d is refactoring\n",
+				get_time_ms() - coder_original->sim->start_time,
+				coder_original->number);
+			coder_original->task = COMPILE;
+		}
+	}
 	return (NULL);
 }
 
-void	gen_coder_threads(t_coder *coders, t_settings *config)
+void	gen_coder_threads(t_coder *coders, t_simulation *sim)
 {
-	int				i;
-	t_simulation	sim;
-	t_work			*work;
-	pthread_t		thread;
+	int	i;
 
 	i = 0;
-	sim.coders = coders;
-	sim.config = config;
-	while (i < config->number_of_coders)
+	sim->start_time = get_time_ms();
+	while (i < sim->number_of_coders)
 	{
-		work[i].sim = &sim;
-		work[i].coder = &coders[i];
-		pthread_create(&thread, NULL, coder_thread, &work);
+		coders[i].thread = (pthread_t *)malloc(sizeof(pthread_t));
+		if (!coders[i].thread)
+			thread_error(sim, coders, i);
+		pthread_create(coders[i].thread, NULL, coder_thread, &coders[i]);
 		i++;
 	}
+}
+
+int	is_burned_out(t_coder *coders, t_simulation *sim)
+{
+	int	i;
+
+	i = 0;
+	while (i < sim->number_of_coders)
+	{
+		if (get_time_ms() - coders[i].last_compile_start
+			>= sim->time_to_burnout)
+		{
+			return (1);
+		}
+		i++;
+	}
+	return (0);
+}
+
+int	is_everyone_finished(t_coder *coders, t_simulation *sim)
+{
+	int	i;
+
+	i = 0;
+	while (i < sim->number_of_coders)
+	{
+		if (coders[i].compile_count < sim->number_of_compiles_required)
+		{
+			return (0);
+		}
+		i++;
+	}
+	return (1);
+}
+
+void	*mon_thread(void *coders)
+{
+	t_coder			*coders_original;
+	t_simulation	*sim;
+
+	coders_original = (t_coder *) coders;
+	sim = coders_original[0].sim;
+	while (!is_burned_out(coders_original, sim)
+		|| !is_everyone_finished(coders, sim))
+	{
+		printf("Monitoring...\n");
+		usleep(10);
+	}
+	return (NULL);
+}
+
+void	launch_mon_thread(pthread_t *thread, t_coder *coders)
+{
+	pthread_create(thread, NULL, mon_thread, coders);
 }

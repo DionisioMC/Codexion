@@ -6,7 +6,7 @@
 /*   By: dcoelho <dcoelho@student.42porto.com>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/01 11:38:44 by dcoelho           #+#    #+#             */
-/*   Updated: 2026/08/21 17:07:38 by dcoelho          ###   ########.fr       */
+/*   Updated: 2026/08/26 11:43:51 by dcoelho          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,13 +14,27 @@
 # define CODEXION_H
 # include <stdio.h>
 # include <stdlib.h>
+# include <unistd.h>
 # include <pthread.h>
 # include <string.h>
 # include <time.h>
 # include <sys/resource.h>
 # include <sys/time.h>
 
-typedef struct s_setting
+enum e_task
+{
+	COMPILE,
+	DEBUG,
+	REFACTOR
+};
+
+typedef struct s_dongle
+{
+	int				id;
+	int				cooldown;
+}	t_dongle;
+
+typedef struct s_simulation
 {
 	int		number_of_coders;
 	int		time_to_burnout;
@@ -30,42 +44,29 @@ typedef struct s_setting
 	int		number_of_compiles_required;
 	int		dongle_cooldown;
 	char	*scheduler;
-}	t_settings;
-
-typedef struct s_dongle
-{
-	int				id;
-	int				cooldown;
-}	t_dongle;
+	long	start_time;
+	int		stop;
+}	t_simulation;
 
 typedef struct s_coder
 {
-	int			number;
-	time_t		last_compile_start;
-	int			compile_count;
-	pthread_t	*thread;
-	t_dongle	*l_dongle;
-	t_dongle	*r_dongle;
+	int				number;
+	time_t			last_compile_start;
+	int				compile_count;
+	enum e_task		task;
+	pthread_t		*thread;
+	t_dongle		*l_dongle;
+	t_dongle		*r_dongle;
+	t_simulation	*sim;
 }	t_coder;
 
-typedef struct s_simulation
-{
-	t_settings	*config;
-	t_coder		*coders;
-	long		start_time;
-}	t_simulation;
-
-typedef struct s_work
-{
-	t_coder			*coder;
-	t_simulation	*sim;
-}	t_work;
-
-t_settings	*parser(int argc, char **argv);
-void		arg_error(void);
-void		error_and_exit(t_settings *config);
-void		*coder_thread(void *work);
-void		gen_coder_threads(t_coder *coders, t_settings *config);
-long		get_time_ms(void);
+t_simulation	*parser(int argc, char **argv);
+void			arg_error(void);
+void			error_and_exit(t_simulation *config);
+void			thread_error(t_simulation *config, t_coder *coders, int i);
+void			*coder_thread(void *work);
+void			gen_coder_threads(t_coder *coders, t_simulation *sim);
+long			get_time_ms(void);
+void			launch_mon_thread(pthread_t *mon_thread, t_coder *coders);
 
 #endif
