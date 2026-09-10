@@ -2,9 +2,10 @@ NAME = codexion
 
 CC = cc
 
-CFLAGS = -Wall -Wextra -Werror -g
+CFLAGS = -Wall -Wextra -Werror -pthread -g
 
-FILES = main.c parcing.c error.c threads.c
+FILES = main.c parsing.c error.c thread.c thread_utilities.c \
+		dongle.c dongle_utilities.c
 
 OBJ = $(FILES:.c=.o)
 

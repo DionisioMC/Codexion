@@ -1,12 +1,12 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   parcing.c                                          :+:      :+:    :+:   */
+/*   parsing.c                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: dcoelho <dcoelho@student.42porto.com>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/12 15:01:55 by dcoelho           #+#    #+#             */
-/*   Updated: 2026/08/26 12:16:02 by dcoelho          ###   ########.fr       */
+/*   Updated: 2026/09/09 17:41:54 by dcoelho          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -55,10 +55,8 @@ int	is_valid_number(char *s)
 		}
 		i++;
 	}
-	if (num < 0 || num > 2147483647)
-	{
+	if (strcmp(s, "\0") == 0 || num < 0 || num > 2147483647)
 		return (0);
-	}
 	return (1);
 }
 
@@ -91,14 +89,28 @@ void	parse_verify(t_simulation *sim, char **argv)
 t_simulation	*parser(int argc, char **argv)
 {
 	t_simulation	*sim;
+	int				stop_mutex_init;
+	int				log_mutex_init;
 
 	if (argc -1 != 8)
 		arg_error();
 	sim = malloc(sizeof(t_simulation));
 	if (!sim)
+		exit(1);
+	parse_verify(sim, argv);
+	sim->stop = 0;
+	stop_mutex_init = pthread_mutex_init(&sim->stop_mutex, NULL);
+	if (stop_mutex_init)
 	{
+		free(sim);
 		exit(1);
 	}
-	parse_verify(sim, argv);
+	log_mutex_init = pthread_mutex_init(&sim->log_mutex, NULL);
+	if (log_mutex_init)
+	{
+		pthread_mutex_destroy(&sim->stop_mutex);
+		free(sim);
+		exit(1);
+	}
 	return (sim);
 }

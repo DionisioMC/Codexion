@@ -6,7 +6,7 @@
 /*   By: dcoelho <dcoelho@student.42porto.com>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/01 11:36:56 by dcoelho           #+#    #+#             */
-/*   Updated: 2026/08/26 12:20:46 by dcoelho          ###   ########.fr       */
+/*   Updated: 2026/09/10 12:04:00 by dcoelho          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,17 +25,21 @@ void	free_coders(t_coder *coders, t_simulation *sim)
 			free(coders[i].thread);
 			coders[i].r_dongle = NULL;
 			coders[i].thread = NULL;
+			pthread_mutex_destroy(&coders[i].mutex);
 		}
 		i++;
 	}
 	free(coders);
 }
 
-t_dongle	*gen_dongle(int i, t_simulation *sim, t_coder *coders)
+t_dongle	*gen_dongle(int i, t_simulation *sim, t_coder *coders,
+	pthread_t *monitoring_thread)
 {
 	t_dongle	*dongle;
+	int			j;
 
 	dongle = (t_dongle *) malloc(sizeof(t_dongle));
+	j = 0;
 	if (dongle)
 	{
 		dongle->id = i + 1;
@@ -44,13 +48,21 @@ t_dongle	*gen_dongle(int i, t_simulation *sim, t_coder *coders)
 	}
 	else
 	{
-		free_coders(coders, sim);
+		while (j < i - 1)
+		{
+			if (coders[i].r_dongle)
+			{
+				free(coders[i].r_dongle);
+				coders[i].r_dongle = NULL;
+			}
+		}
 		free(sim);
+		free(monitoring_thread);
 		exit(1);
 	}
 }
 
-long	get_time_ms(void)
+long long	get_time_ms(void)
 {
 	struct timeval	tv;
 
@@ -58,7 +70,8 @@ long	get_time_ms(void)
 	return ((tv.tv_sec * 1000) + (tv.tv_usec / 1000));
 }
 
-void	gen_coders_and_dongles(t_coder *coders, t_simulation *sim)
+void	gen_coders_and_dongles(t_coder *coders, t_simulation *sim,
+	pthread_t *monitoring_thread)
 {
 	int				i;
 	t_coder			coder;
@@ -69,8 +82,9 @@ void	gen_coders_and_dongles(t_coder *coders, t_simulation *sim)
 		coder.number = i + 1;
 		coder.compile_count = 0;
 		coder.l_dongle = NULL;
-		coder.r_dongle = gen_dongle(i, sim, coders);
+		coder.r_dongle = gen_dongle(i, sim, coders, monitoring_thread);
 		coder.task = COMPILE;
+		coder.last_compile_start = 0;
 		coder.sim = sim;
 		if (i > 0 && i != (sim->number_of_coders - 1))
 			coder.l_dongle = coders[i - 1].r_dongle;
@@ -84,46 +98,26 @@ void	gen_coders_and_dongles(t_coder *coders, t_simulation *sim)
 	}
 }
 
-void	print_coders(t_coder *coders, int number_of_coders)
-{
-	int	i;
-
-	i = 0;
-	while (i < number_of_coders)
-	{
-		printf("Coder %d:\n", coders[i].number);
-		printf("  last_compile_start: %ld\n", coders[i].last_compile_start);
-		printf("  compile_count: %d\n", coders[i].compile_count);
-		printf("  l_dongle: %p\n", (void *)coders[i].l_dongle);
-		printf("  r_dongle: %p\n", (void *)coders[i].r_dongle);
-		i++;
-	}
-}
-
 int	main(int argc, char **argv)
 {
 	t_coder			*coders;
 	t_simulation	*sim;
-	pthread_t		*mon_thread;
+	pthread_t		*monitoring_thread;
 	int				i;
 
 	i = 0;
 	sim = parser(argc, argv);
+	sim->start_time = get_time_ms();
 	coders = (t_coder *)malloc(sizeof(t_coder) * sim->number_of_coders);
-	mon_thread = (pthread_t *)malloc(sizeof(pthread_t));
-	if (coders)
-	{
-		gen_coders_and_dongles(coders, sim);
-		gen_coder_threads(coders, sim);
-		launch_mon_thread(mon_thread, coders);
-		pthread_join(*mon_thread, NULL);
-		free(mon_thread);
-		free_coders(coders, sim);
-		free(sim);
-	}
+	monitoring_thread = (pthread_t *)malloc(sizeof(pthread_t));
+	if (coders && monitoring_thread)
+		simulation(coders, sim, monitoring_thread);
 	else
 	{
-		free(coders);
+		pthread_mutex_destroy(&sim->stop_mutex);
+		pthread_mutex_destroy(&sim->log_mutex);
+		free(monitoring_thread);
+		free_coders(coders, sim);
 		free(sim);
 		exit(1);
 	}
