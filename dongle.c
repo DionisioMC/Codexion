@@ -6,7 +6,7 @@
 /*   By: dcoelho <dcoelho@student.42porto.com>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/10 14:38:23 by dcoelho           #+#    #+#             */
-/*   Updated: 2026/09/10 16:15:58 by dcoelho          ###   ########.fr       */
+/*   Updated: 2026/09/11 16:16:51 by dcoelho          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,11 +40,12 @@ static int	is_next(t_dongle *dongle, t_coder *coder, t_simulation *sim)
 	return (higher_priority(sim, coder, next_coder));
 }
 
-void	acquire_dongles(t_coder *coder)
+int	acquire_dongles(t_coder *coder)
 {
 	t_dongle	*lo;
 	t_dongle	*hi;
 	int			got;
+	int			stop;
 
 	lo = low_dongle(coder);
 	hi = high_dongle(coder);
@@ -54,6 +55,15 @@ void	acquire_dongles(t_coder *coder)
 	got = 0;
 	while (!got)
 	{
+		pthread_mutex_lock(&coder->sim->stop_mutex);
+		stop = coder->sim->stop;
+		pthread_mutex_unlock(&coder->sim->stop_mutex);
+		if (stop)
+		{
+			queue_remove(lo, coder);
+			queue_remove(hi, coder);
+			return (0);
+		}
 		pthread_mutex_lock(&lo->mutex);
 		pthread_mutex_lock(&hi->mutex);
 		if (!lo->busy && !hi->busy
@@ -74,6 +84,7 @@ void	acquire_dongles(t_coder *coder)
 			pthread_mutex_unlock(&coder->sim->wake_mutex);
 		}
 	}
+	return (1);
 }
 
 void	release_dongles(t_coder *coder)

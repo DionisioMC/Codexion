@@ -6,7 +6,7 @@
 /*   By: dcoelho <dcoelho@student.42porto.com>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/07 12:18:43 by dcoelho           #+#    #+#             */
-/*   Updated: 2026/09/10 11:06:00 by dcoelho          ###   ########.fr       */
+/*   Updated: 2026/09/11 16:15:44 by dcoelho          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -60,6 +60,8 @@ void	coder_compile(t_coder *coder)
 	pthread_mutex_lock(&coder->mutex);
 	coder->last_compile_start = get_time_ms();
 	pthread_mutex_unlock(&coder->mutex);
+	if (!acquire_dongles(coder))
+		return ;
 	pthread_mutex_lock(&coder->sim->log_mutex);
 	pthread_mutex_lock(&coder->sim->stop_mutex);
 	if (!coder->sim->stop)
@@ -72,6 +74,7 @@ void	coder_compile(t_coder *coder)
 		pthread_mutex_unlock(&coder->sim->stop_mutex);
 	pthread_mutex_unlock(&coder->sim->log_mutex);
 	usleep(coder->sim->time_to_compile * 1000);
+	release_dongles(coder);
 	pthread_mutex_lock(&coder->mutex);
 	coder->compile_count++;
 	coder->task = DEBUG;

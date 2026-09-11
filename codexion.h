@@ -6,7 +6,7 @@
 /*   By: dcoelho <dcoelho@student.42porto.com>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/01 11:38:44 by dcoelho           #+#    #+#             */
-/*   Updated: 2026/09/10 16:19:50 by dcoelho          ###   ########.fr       */
+/*   Updated: 2026/09/11 16:12:11 by dcoelho          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -88,7 +88,7 @@ void			coder_refactor(t_coder *coder);
 void			simulation(t_coder *coders, t_simulation *sim,
 					pthread_t *monitoring_thread);
 void			free_coders(t_coder *coders, t_simulation *sim);
-void			acquire_dongles(t_coder *coder);
+int				acquire_dongles(t_coder *coder);
 void			release_dongles(t_coder *coder);
 int				is_burned_out(t_coder *coders, t_simulation *sim);
 int				is_everyone_finished(t_coder *coders, t_simulation *sim);
