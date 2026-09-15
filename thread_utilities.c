@@ -6,7 +6,7 @@
 /*   By: dcoelho <dcoelho@student.42porto.com>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/07 12:18:43 by dcoelho           #+#    #+#             */
-/*   Updated: 2026/09/11 16:15:44 by dcoelho          ###   ########.fr       */
+/*   Updated: 2026/09/15 12:15:52 by dcoelho          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,12 +25,9 @@ int	is_burned_out(t_coder *coders, t_simulation *sim)
 			deadline = get_time_ms() - sim->start_time;
 		else
 			deadline = get_time_ms() - coders[i].last_compile_start;
-		if (deadline >= sim->time_to_burnout)
-		{
-			pthread_mutex_unlock(&coders[i].mutex);
-			return (i);
-		}
 		pthread_mutex_unlock(&coders[i].mutex);
+		if (deadline >= sim->time_to_burnout)
+			return (i);
 		i++;
 	}
 	return (-1);
@@ -65,13 +62,9 @@ void	coder_compile(t_coder *coder)
 	pthread_mutex_lock(&coder->sim->log_mutex);
 	pthread_mutex_lock(&coder->sim->stop_mutex);
 	if (!coder->sim->stop)
-	{
-		pthread_mutex_unlock(&coder->sim->stop_mutex);
 		printf("%lld %d is compiling\n",
 			get_time_ms() - coder->sim->start_time, coder->number);
-	}
-	else
-		pthread_mutex_unlock(&coder->sim->stop_mutex);
+	pthread_mutex_unlock(&coder->sim->stop_mutex);
 	pthread_mutex_unlock(&coder->sim->log_mutex);
 	usleep(coder->sim->time_to_compile * 1000);
 	release_dongles(coder);

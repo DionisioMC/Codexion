@@ -6,7 +6,7 @@
 /*   By: dcoelho <dcoelho@student.42porto.com>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/12 15:01:55 by dcoelho           #+#    #+#             */
-/*   Updated: 2026/09/09 17:41:54 by dcoelho          ###   ########.fr       */
+/*   Updated: 2026/09/15 14:52:52 by dcoelho          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -89,8 +89,6 @@ void	parse_verify(t_simulation *sim, char **argv)
 t_simulation	*parser(int argc, char **argv)
 {
 	t_simulation	*sim;
-	int				stop_mutex_init;
-	int				log_mutex_init;
 
 	if (argc -1 != 8)
 		arg_error();
@@ -99,16 +97,18 @@ t_simulation	*parser(int argc, char **argv)
 		exit(1);
 	parse_verify(sim, argv);
 	sim->stop = 0;
-	stop_mutex_init = pthread_mutex_init(&sim->stop_mutex, NULL);
-	if (stop_mutex_init)
+	if (pthread_mutex_init(&sim->stop_mutex, NULL))
 	{
 		free(sim);
 		exit(1);
 	}
-	log_mutex_init = pthread_mutex_init(&sim->log_mutex, NULL);
-	if (log_mutex_init)
+	pthread_mutex_init(&sim->log_mutex, NULL);
+	pthread_mutex_init(&sim->wake_mutex, NULL);
+	if (pthread_cond_init(&sim->wake_cond, NULL))
 	{
 		pthread_mutex_destroy(&sim->stop_mutex);
+		pthread_mutex_destroy(&sim->log_mutex);
+		pthread_mutex_destroy(&sim->wake_mutex);
 		free(sim);
 		exit(1);
 	}

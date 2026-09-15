@@ -6,7 +6,7 @@
 /*   By: dcoelho <dcoelho@student.42porto.com>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/21 12:07:29 by dcoelho           #+#    #+#             */
-/*   Updated: 2026/09/10 12:29:56 by dcoelho          ###   ########.fr       */
+/*   Updated: 2026/09/14 14:45:09 by dcoelho          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -63,7 +63,9 @@ void	*mon_thread(void *coders)
 	sim = coders_original[0].sim;
 	while (is_burned_out(coders_original, sim) < 0
 		&& !is_everyone_finished(coders_original, sim))
+	{
 		usleep(1000);
+	}
 	burned_out = is_burned_out(coders_original, sim);
 	pthread_mutex_lock(&sim->log_mutex);
 	pthread_mutex_lock(&sim->stop_mutex);
@@ -76,7 +78,7 @@ void	*mon_thread(void *coders)
 	return (NULL);
 }
 
-void	simulation(t_coder *coders, t_simulation *sim,
+void	gen_simulation(t_coder *coders, t_simulation *sim,
 	pthread_t *monitoring_thread)
 {
 	int	i;

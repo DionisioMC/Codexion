@@ -6,21 +6,23 @@
 /*   By: dcoelho <dcoelho@student.42porto.com>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/10 14:38:23 by dcoelho           #+#    #+#             */
-/*   Updated: 2026/09/11 16:16:51 by dcoelho          ###   ########.fr       */
+/*   Updated: 2026/09/15 15:25:41 by dcoelho          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "codexion.h"
 
-static void	queue_remove(t_dongle *dongle, t_coder *coder)
+void	queue_remove(t_dongle *dongle, t_coder *coder)
 {
-	if (dongle->queue[0] == coder)
+	pthread_mutex_lock(&dongle->mutex);
+	if (dongle->queue[0] == coder && dongle->queue[1] == NULL)
 		dongle->queue[0] = NULL;
-	else if (dongle->queue[1] == coder)
+	else if (dongle->queue[1] == coder && dongle->queue[0] != NULL)
 		dongle->queue[1] = NULL;
+	pthread_mutex_unlock(&dongle->mutex);
 }
 
-static int	higher_priority(t_simulation *sim, t_coder *coder_a,
+int	higher_priority(t_simulation *sim, t_coder *coder_a,
 	t_coder *coder_b)
 {
 	if (!coder_b || coder_b == coder_a)
@@ -30,77 +32,54 @@ static int	higher_priority(t_simulation *sim, t_coder *coder_a,
 	return (coder_a->request_ts < coder_b->request_ts);
 }
 
-static int	is_next(t_dongle *dongle, t_coder *coder, t_simulation *sim)
+int	is_next(t_dongle *dongle, t_coder *coder, t_simulation *sim)
 {
 	t_coder	*next_coder;
 
+	printf("%d\n", coder->number);
+	pthread_mutex_lock(&dongle->mutex);
 	next_coder = dongle->queue[0];
 	if (next_coder == coder)
 		next_coder = dongle->queue[1];
+	pthread_mutex_unlock(&dongle->mutex);
 	return (higher_priority(sim, coder, next_coder));
 }
 
 int	acquire_dongles(t_coder *coder)
 {
-	t_dongle	*lo;
-	t_dongle	*hi;
-	int			got;
-	int			stop;
+	t_dongle	*left;
+	t_dongle	*right;
 
-	lo = low_dongle(coder);
-	hi = high_dongle(coder);
-	coder->request_ts = get_time_ms();
-	queue_add(lo, coder);
-	queue_add(hi, coder);
-	got = 0;
-	while (!got)
+	left = coder->l_dongle;
+	right = coder->r_dongle;
+	if (coder->number % 2 != 0)
 	{
-		pthread_mutex_lock(&coder->sim->stop_mutex);
-		stop = coder->sim->stop;
-		pthread_mutex_unlock(&coder->sim->stop_mutex);
-		if (stop)
-		{
-			queue_remove(lo, coder);
-			queue_remove(hi, coder);
+		if (!occupy_dongle(left, coder))
 			return (0);
-		}
-		pthread_mutex_lock(&lo->mutex);
-		pthread_mutex_lock(&hi->mutex);
-		if (!lo->busy && !hi->busy
-			&& is_next(lo, coder, coder->sim) && is_next(hi, coder, coder->sim))
-		{
-			lo->busy = 1;
-			hi->busy = 1;
-			queue_remove(lo, coder);
-			queue_remove(hi, coder);
-			got = 1;
-		}
-		pthread_mutex_unlock(&hi->mutex);
-		pthread_mutex_unlock(&lo->mutex);
-		if (!got)
-		{
-			pthread_mutex_lock(&coder->sim->wake_mutex);
-			pthread_cond_wait(&coder->sim->wake_cond, &coder->sim->wake_mutex);
-			pthread_mutex_unlock(&coder->sim->wake_mutex);
-		}
+		if (occupy_dongle(right, coder))
+			return (queue_remove(left, coder), 0);
+	}
+	else
+	{
+		if (!occupy_dongle(right, coder))
+			return (0);
+		if (occupy_dongle(right, coder))
+			return (queue_remove(right, coder), 0);
 	}
 	return (1);
 }
 
 void	release_dongles(t_coder *coder)
 {
-	t_dongle	*lo;
-	t_dongle	*hi;
+	t_dongle	*left;
+	t_dongle	*right;
 
-	lo = low_dongle(coder);
-	hi = high_dongle(coder);
-	pthread_mutex_lock(&lo->mutex);
-	lo->busy = 0;
-	pthread_mutex_unlock(&lo->mutex);
-	pthread_mutex_lock(&hi->mutex);
-	hi->busy = 0;
-	pthread_mutex_unlock(&hi->mutex);
-	pthread_mutex_lock(&coder->sim->wake_mutex);
-	pthread_cond_broadcast(&coder->sim->wake_cond);
-	pthread_mutex_unlock(&coder->sim->wake_mutex);
+	left = coder->l_dongle;
+	right = coder->r_dongle;
+	pthread_mutex_lock(&left->mutex);
+	pthread_mutex_lock(&right->mutex);
+	left->busy = 0;
+	right->busy = 0;
+	pthread_mutex_unlock(&right->mutex);
+	pthread_mutex_unlock(&left->mutex);
 }

@@ -6,7 +6,7 @@
 /*   By: dcoelho <dcoelho@student.42porto.com>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/01 11:38:44 by dcoelho           #+#    #+#             */
-/*   Updated: 2026/09/11 16:12:11 by dcoelho          ###   ########.fr       */
+/*   Updated: 2026/09/15 16:50:41 by dcoelho          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -85,17 +85,17 @@ void			*mon_thread(void *coders);
 void			coder_compile(t_coder *coder);
 void			coder_debug(t_coder *coder);
 void			coder_refactor(t_coder *coder);
-void			simulation(t_coder *coders, t_simulation *sim,
+void			gen_simulation(t_coder *coders, t_simulation *sim,
 					pthread_t *monitoring_thread);
 void			free_coders(t_coder *coders, t_simulation *sim);
 int				acquire_dongles(t_coder *coder);
 void			release_dongles(t_coder *coder);
 int				is_burned_out(t_coder *coders, t_simulation *sim);
 int				is_everyone_finished(t_coder *coders, t_simulation *sim);
-t_dongle		*low_dongle(t_coder *coder);
-t_dongle		*high_dongle(t_coder *coder);
 long long		compute_deadline(t_coder *coder);
-int				dongle_is_free(t_coder *coder);
 void			queue_add(t_dongle *dongle, t_coder *coder);
+int				occupy_dongle(t_dongle *dongle, t_coder *coder);
+void			queue_remove(t_dongle *dongle, t_coder *coder);
+int				is_next(t_dongle *dongle, t_coder *coder, t_simulation *sim);
 
 #endif

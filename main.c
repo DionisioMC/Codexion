@@ -6,7 +6,7 @@
 /*   By: dcoelho <dcoelho@student.42porto.com>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/01 11:36:56 by dcoelho           #+#    #+#             */
-/*   Updated: 2026/09/10 12:04:00 by dcoelho          ###   ########.fr       */
+/*   Updated: 2026/09/15 16:50:34 by dcoelho          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,9 +21,10 @@ void	free_coders(t_coder *coders, t_simulation *sim)
 	{
 		if (coders[i].r_dongle)
 		{
+			pthread_mutex_destroy(&coders[i].mutex);
 			free(coders[i].r_dongle);
-			free(coders[i].thread);
 			coders[i].r_dongle = NULL;
+			free(coders[i].thread);
 			coders[i].thread = NULL;
 			pthread_mutex_destroy(&coders[i].mutex);
 		}
@@ -44,18 +45,24 @@ t_dongle	*gen_dongle(int i, t_simulation *sim, t_coder *coders,
 	{
 		dongle->id = i + 1;
 		dongle->cooldown = sim->dongle_cooldown;
+		pthread_mutex_init(&dongle->mutex, NULL);
 		return (dongle);
 	}
 	else
 	{
 		while (j < i - 1)
 		{
-			if (coders[i].r_dongle)
+			if (coders[j].r_dongle)
 			{
-				free(coders[i].r_dongle);
-				coders[i].r_dongle = NULL;
+				pthread_mutex_destroy(&coders[j].mutex);
+				free(coders[j].r_dongle);
+				coders[j].r_dongle = NULL;
+				free(coders[j].thread);
+				coders[j].thread = NULL;
 			}
+			j++;
 		}
+		free(coders);
 		free(sim);
 		free(monitoring_thread);
 		exit(1);
@@ -111,11 +118,13 @@ int	main(int argc, char **argv)
 	coders = (t_coder *)malloc(sizeof(t_coder) * sim->number_of_coders);
 	monitoring_thread = (pthread_t *)malloc(sizeof(pthread_t));
 	if (coders && monitoring_thread)
-		simulation(coders, sim, monitoring_thread);
+		gen_simulation(coders, sim, monitoring_thread);
 	else
 	{
 		pthread_mutex_destroy(&sim->stop_mutex);
 		pthread_mutex_destroy(&sim->log_mutex);
+		pthread_mutex_destroy(&sim->wake_mutex);
+		pthread_cond_destroy(&sim->wake_cond);
 		free(monitoring_thread);
 		free_coders(coders, sim);
 		free(sim);
