@@ -6,7 +6,7 @@
 /*   By: dcoelho <dcoelho@student.42porto.com>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/10 15:57:44 by dcoelho           #+#    #+#             */
-/*   Updated: 2026/09/18 16:21:13 by dcoelho          ###   ########.fr       */
+/*   Updated: 2026/09/18 16:32:40 by dcoelho          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -58,8 +58,8 @@ int	occupy_dongle(t_dongle *dongle, t_coder *coder)
 	}
 	queue_add(dongle, coder);
 	pthread_mutex_lock(&dongle->mutex);
-	while ((dongle->busy || get_time_ms() <= dongle->active_timestamp)
-		&& !is_next(dongle, coder, coder->sim))
+	while (dongle->busy || get_time_ms() <= dongle->active_timestamp
+		|| !is_next(dongle, coder, coder->sim))
 	{
 		pthread_mutex_lock(&coder->sim->stop_mutex);
 		if (coder->sim->stop)
@@ -85,7 +85,6 @@ void	release_dongle(t_dongle *dongle, t_coder *coder)
 	pthread_mutex_lock(&dongle->mutex);
 	dongle->busy = 0;
 	dongle->active_timestamp = get_time_ms() + dongle->cooldown;
-	printf("%lld\n", dongle->active_timestamp - coder->sim->start_time);
 	pthread_cond_broadcast(&dongle->wake_cond);
 	pthread_mutex_unlock(&dongle->mutex);
 }
