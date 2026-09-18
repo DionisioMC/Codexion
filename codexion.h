@@ -6,7 +6,7 @@
 /*   By: dcoelho <dcoelho@student.42porto.com>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/01 11:38:44 by dcoelho           #+#    #+#             */
-/*   Updated: 2026/09/15 16:50:41 by dcoelho          ###   ########.fr       */
+/*   Updated: 2026/09/17 17:07:14 by dcoelho          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -44,8 +44,6 @@ typedef struct s_simulation
 	int				stop;
 	pthread_mutex_t	stop_mutex;
 	pthread_mutex_t	log_mutex;
-	pthread_mutex_t	wake_mutex;
-	pthread_cond_t	wake_cond;
 }	t_simulation;
 
 typedef struct s_coder
@@ -67,8 +65,10 @@ typedef struct s_dongle
 	int				id;
 	int				cooldown;
 	int				busy;
+	long long		active_timestamp;
 	t_coder			*queue[2];
 	pthread_mutex_t	mutex;
+	pthread_cond_t	wake_cond;
 }	t_dongle;
 
 t_simulation	*parser(int argc, char **argv);
@@ -97,5 +97,9 @@ void			queue_add(t_dongle *dongle, t_coder *coder);
 int				occupy_dongle(t_dongle *dongle, t_coder *coder);
 void			queue_remove(t_dongle *dongle, t_coder *coder);
 int				is_next(t_dongle *dongle, t_coder *coder, t_simulation *sim);
+void			dongle_error(int i, t_coder *coders, t_simulation *sim,
+					pthread_t *monitoring_thread);
+void			thread_print(t_coder *coder, char *string);
+void			release_dongle(t_dongle *dongle, t_coder *coder);
 
 #endif

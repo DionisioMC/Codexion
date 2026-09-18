@@ -6,7 +6,7 @@
 /*   By: dcoelho <dcoelho@student.42porto.com>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/21 12:07:29 by dcoelho           #+#    #+#             */
-/*   Updated: 2026/09/14 14:45:09 by dcoelho          ###   ########.fr       */
+/*   Updated: 2026/09/18 16:18:42 by dcoelho          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -43,8 +43,6 @@ void	gen_coder_threads(t_coder *coders, t_simulation *sim)
 	i = 0;
 	while (i < sim->number_of_coders)
 	{
-		if (pthread_mutex_init(&coders[i].mutex, NULL))
-			mutex_error(sim, coders, i);
 		coders[i].thread = (pthread_t *)malloc(sizeof(pthread_t));
 		if (!coders[i].thread)
 			thread_error(sim, coders, i);
@@ -58,23 +56,29 @@ void	*mon_thread(void *coders)
 	t_coder			*coders_original;
 	t_simulation	*sim;
 	int				burned_out;
+	int				i;
 
 	coders_original = (t_coder *) coders;
 	sim = coders_original[0].sim;
+	i = 0;
 	while (is_burned_out(coders_original, sim) < 0
 		&& !is_everyone_finished(coders_original, sim))
 	{
 		usleep(1000);
 	}
-	burned_out = is_burned_out(coders_original, sim);
-	pthread_mutex_lock(&sim->log_mutex);
 	pthread_mutex_lock(&sim->stop_mutex);
 	sim->stop = 1;
 	pthread_mutex_unlock(&sim->stop_mutex);
+	burned_out = is_burned_out(coders_original, sim);
 	if (burned_out >= 0)
-		printf("%lld %d burned out\n", get_time_ms() - sim->start_time,
-			coders_original[burned_out].number);
-	pthread_mutex_unlock(&sim->log_mutex);
+	{
+		thread_print(&coders_original[burned_out], "burned out");
+	}
+	while (i < sim->number_of_coders)
+	{
+		pthread_cond_broadcast(&coders_original[i].r_dongle->wake_cond);
+		i++;
+	}
 	return (NULL);
 }
 
@@ -98,4 +102,12 @@ void	gen_simulation(t_coder *coders, t_simulation *sim,
 	free(monitoring_thread);
 	free_coders(coders, sim);
 	free(sim);
+}
+
+void	thread_print(t_coder *coder, char *string)
+{
+	pthread_mutex_lock(&coder->sim->log_mutex);
+	printf("%lld %d %s\n", get_time_ms() - coder->sim->start_time,
+		coder->number, string);
+	pthread_mutex_unlock(&coder->sim->log_mutex);
 }

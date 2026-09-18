@@ -6,7 +6,7 @@
 /*   By: dcoelho <dcoelho@student.42porto.com>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/17 16:59:17 by dcoelho           #+#    #+#             */
-/*   Updated: 2026/09/09 17:35:28 by dcoelho          ###   ########.fr       */
+/*   Updated: 2026/09/16 13:27:59 by dcoelho          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -70,4 +70,27 @@ void	mutex_error(t_simulation *sim, t_coder *coders, int i)
 	free(sim);
 	free(coders);
 	exit(1);
+}
+
+void	dongle_error(int i, t_coder *coders, t_simulation *sim,
+	pthread_t *monitoring_thread)
+{
+	int	j;
+
+	j = 0;
+	while (j < i - 1)
+	{
+		if (coders[j].r_dongle)
+		{
+			pthread_mutex_destroy(&coders[j].mutex);
+			free(coders[j].r_dongle);
+			coders[j].r_dongle = NULL;
+			free(coders[j].thread);
+			coders[j].thread = NULL;
+		}
+		j++;
+	}
+	free(coders);
+	free(sim);
+	free(monitoring_thread);
 }

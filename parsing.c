@@ -6,7 +6,7 @@
 /*   By: dcoelho <dcoelho@student.42porto.com>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/12 15:01:55 by dcoelho           #+#    #+#             */
-/*   Updated: 2026/09/15 14:52:52 by dcoelho          ###   ########.fr       */
+/*   Updated: 2026/09/16 14:17:25 by dcoelho          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -97,20 +97,7 @@ t_simulation	*parser(int argc, char **argv)
 		exit(1);
 	parse_verify(sim, argv);
 	sim->stop = 0;
-	if (pthread_mutex_init(&sim->stop_mutex, NULL))
-	{
-		free(sim);
-		exit(1);
-	}
+	pthread_mutex_init(&sim->stop_mutex, NULL);
 	pthread_mutex_init(&sim->log_mutex, NULL);
-	pthread_mutex_init(&sim->wake_mutex, NULL);
-	if (pthread_cond_init(&sim->wake_cond, NULL))
-	{
-		pthread_mutex_destroy(&sim->stop_mutex);
-		pthread_mutex_destroy(&sim->log_mutex);
-		pthread_mutex_destroy(&sim->wake_mutex);
-		free(sim);
-		exit(1);
-	}
 	return (sim);
 }

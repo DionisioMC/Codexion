@@ -1,12 +1,12 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   thread_utilities.c                                 :+:      :+:    :+:   */
+/*   thread_utils.c                                     :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: dcoelho <dcoelho@student.42porto.com>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/07 12:18:43 by dcoelho           #+#    #+#             */
-/*   Updated: 2026/09/15 12:15:52 by dcoelho          ###   ########.fr       */
+/*   Updated: 2026/09/18 15:47:53 by dcoelho          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -54,18 +54,15 @@ int	is_everyone_finished(t_coder *coders, t_simulation *sim)
 
 void	coder_compile(t_coder *coder)
 {
+	if (!acquire_dongles(coder))
+		return ;
 	pthread_mutex_lock(&coder->mutex);
 	coder->last_compile_start = get_time_ms();
 	pthread_mutex_unlock(&coder->mutex);
-	if (!acquire_dongles(coder))
-		return ;
-	pthread_mutex_lock(&coder->sim->log_mutex);
 	pthread_mutex_lock(&coder->sim->stop_mutex);
 	if (!coder->sim->stop)
-		printf("%lld %d is compiling\n",
-			get_time_ms() - coder->sim->start_time, coder->number);
+		thread_print(coder, "is compiling");
 	pthread_mutex_unlock(&coder->sim->stop_mutex);
-	pthread_mutex_unlock(&coder->sim->log_mutex);
 	usleep(coder->sim->time_to_compile * 1000);
 	release_dongles(coder);
 	pthread_mutex_lock(&coder->mutex);
@@ -76,20 +73,10 @@ void	coder_compile(t_coder *coder)
 
 void	coder_debug(t_coder *coder)
 {
-	pthread_mutex_lock(&coder->mutex);
-	coder->last_compile_start = get_time_ms();
-	pthread_mutex_unlock(&coder->mutex);
-	pthread_mutex_lock(&coder->sim->log_mutex);
 	pthread_mutex_lock(&coder->sim->stop_mutex);
 	if (!coder->sim->stop)
-	{
-		pthread_mutex_unlock(&coder->sim->stop_mutex);
-		printf("%lld %d is debugging\n",
-			get_time_ms() - coder->sim->start_time, coder->number);
-	}
-	else
-		pthread_mutex_unlock(&coder->sim->stop_mutex);
-	pthread_mutex_unlock(&coder->sim->log_mutex);
+		thread_print(coder, "is debugging");
+	pthread_mutex_unlock(&coder->sim->stop_mutex);
 	usleep(coder->sim->time_to_debug * 1000);
 	pthread_mutex_lock(&coder->mutex);
 	coder->task = REFACTOR;
@@ -98,20 +85,10 @@ void	coder_debug(t_coder *coder)
 
 void	coder_refactor(t_coder *coder)
 {
-	pthread_mutex_lock(&coder->mutex);
-	coder->last_compile_start = get_time_ms();
-	pthread_mutex_unlock(&coder->mutex);
-	pthread_mutex_lock(&coder->sim->log_mutex);
 	pthread_mutex_lock(&coder->sim->stop_mutex);
 	if (!coder->sim->stop)
-	{
-		pthread_mutex_unlock(&coder->sim->stop_mutex);
-		printf("%lld %d is refactoring\n",
-			get_time_ms() - coder->sim->start_time, coder->number);
-	}
-	else
-		pthread_mutex_unlock(&coder->sim->stop_mutex);
-	pthread_mutex_unlock(&coder->sim->log_mutex);
+		thread_print(coder, "is refactoring");
+	pthread_mutex_unlock(&coder->sim->stop_mutex);
 	usleep(coder->sim->time_to_refactor * 1000);
 	pthread_mutex_lock(&coder->mutex);
 	coder->task = COMPILE;
