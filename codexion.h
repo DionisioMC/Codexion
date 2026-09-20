@@ -6,12 +6,13 @@
 /*   By: dcoelho <dcoelho@student.42porto.com>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/01 11:38:44 by dcoelho           #+#    #+#             */
-/*   Updated: 2026/09/17 17:07:14 by dcoelho          ###   ########.fr       */
+/*   Updated: 2026/09/20 23:31:09 by dcoelho          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #ifndef CODEXION_H
 # define CODEXION_H
+# include <stdbool.h>
 # include <stdio.h>
 # include <stdlib.h>
 # include <unistd.h>
@@ -21,14 +22,43 @@
 # include <sys/resource.h>
 # include <sys/time.h>
 
-struct	s_dongle;
-
 enum e_task
 {
 	COMPILE,
 	DEBUG,
 	REFACTOR
 };
+
+typedef struct s_heap
+{
+	struct coder		**data;
+	int					size;
+}	t_heap;
+
+typedef struct s_dongle
+{
+	int				id;
+	int				cooldown;
+	long long		active_timestamp;
+	bool			busy;
+	t_heap			*heap;
+	pthread_mutex_t	mutex;
+	pthread_cond_t	wake_cond;
+}	t_dongle;
+
+typedef struct s_coder
+{
+	int					number;
+	long long			last_compile_start;
+	long long			request_ts;
+	int					compile_count;
+	enum e_task			task;
+	pthread_t			*thread;
+	t_dongle			*l_dongle;
+	t_dongle			*r_dongle;
+	struct s_simulation	*sim;
+	pthread_mutex_t		mutex;
+}	t_coder;
 
 typedef struct s_simulation
 {
@@ -41,35 +71,12 @@ typedef struct s_simulation
 	int				dongle_cooldown;
 	char			*scheduler;
 	long long		start_time;
-	int				stop;
+	bool			stop;
+	t_dongle		*dongles;
+	t_coder			*coders;
 	pthread_mutex_t	stop_mutex;
 	pthread_mutex_t	log_mutex;
 }	t_simulation;
-
-typedef struct s_coder
-{
-	int				number;
-	long long		last_compile_start;
-	long long		request_ts;
-	int				compile_count;
-	enum e_task		task;
-	pthread_t		*thread;
-	struct s_dongle	*l_dongle;
-	struct s_dongle	*r_dongle;
-	t_simulation	*sim;
-	pthread_mutex_t	mutex;
-}	t_coder;
-
-typedef struct s_dongle
-{
-	int				id;
-	int				cooldown;
-	int				busy;
-	long long		active_timestamp;
-	t_coder			*queue[2];
-	pthread_mutex_t	mutex;
-	pthread_cond_t	wake_cond;
-}	t_dongle;
 
 t_simulation	*parser(int argc, char **argv);
 void			arg_error(void);
@@ -88,15 +95,13 @@ void			coder_refactor(t_coder *coder);
 void			gen_simulation(t_coder *coders, t_simulation *sim,
 					pthread_t *monitoring_thread);
 void			free_coders(t_coder *coders, t_simulation *sim);
-int				acquire_dongles(t_coder *coder);
+bool			acquire_dongles(t_coder *coder);
 void			release_dongles(t_coder *coder);
 int				is_burned_out(t_coder *coders, t_simulation *sim);
-int				is_everyone_finished(t_coder *coders, t_simulation *sim);
+bool			is_everyone_finished(t_coder *coders, t_simulation *sim);
 long long		compute_deadline(t_coder *coder);
 void			queue_add(t_dongle *dongle, t_coder *coder);
-int				occupy_dongle(t_dongle *dongle, t_coder *coder);
-void			queue_remove(t_dongle *dongle, t_coder *coder);
-int				is_next(t_dongle *dongle, t_coder *coder, t_simulation *sim);
+bool			occupy_dongle(t_dongle *dongle, t_coder *coder);
 void			dongle_error(int i, t_coder *coders, t_simulation *sim,
 					pthread_t *monitoring_thread);
 void			thread_print(t_coder *coder, char *string);

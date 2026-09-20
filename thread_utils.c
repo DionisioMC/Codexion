@@ -6,7 +6,7 @@
 /*   By: dcoelho <dcoelho@student.42porto.com>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/07 12:18:43 by dcoelho           #+#    #+#             */
-/*   Updated: 2026/09/18 15:47:53 by dcoelho          ###   ########.fr       */
+/*   Updated: 2026/09/20 23:31:41 by dcoelho          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,7 +33,7 @@ int	is_burned_out(t_coder *coders, t_simulation *sim)
 	return (-1);
 }
 
-int	is_everyone_finished(t_coder *coders, t_simulation *sim)
+bool	is_everyone_finished(t_coder *coders, t_simulation *sim)
 {
 	int	i;
 
@@ -44,12 +44,12 @@ int	is_everyone_finished(t_coder *coders, t_simulation *sim)
 		if (coders[i].compile_count < sim->number_of_compiles_required)
 		{
 			pthread_mutex_unlock(&coders[i].mutex);
-			return (0);
+			return (false);
 		}
 		pthread_mutex_unlock(&coders[i].mutex);
 		i++;
 	}
-	return (1);
+	return (true);
 }
 
 void	coder_compile(t_coder *coder)
