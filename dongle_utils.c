@@ -6,71 +6,48 @@
 /*   By: dcoelho <dcoelho@student.42porto.com>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/10 15:57:44 by dcoelho           #+#    #+#             */
-/*   Updated: 2026/09/20 23:26:23 by dcoelho          ###   ########.fr       */
+/*   Updated: 2026/09/22 11:35:48 by dcoelho          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "codexion.h"
 
-long long	compute_deadline(t_coder *coder)
+bool	is_burned_out(t_coder *coder, t_simulation *sim)
 {
-	long long	deadline;
+	long long	last_compile;
+	long long	time_since_compile;
 
 	pthread_mutex_lock(&coder->mutex);
-	deadline = coder->last_compile_start + coder->sim->time_to_burnout;
-	if (coder->last_compile_start == 0)
-		deadline = coder->sim->start_time + coder->sim->time_to_burnout;
+	last_compile = coder->last_compile_start;
 	pthread_mutex_unlock(&coder->mutex);
-	return (deadline);
+	time_since_compile = get_time_ms() - last_compile;
+	return (time_since_compile >= sim->time_to_burnout);
 }
 
-bool	occupy_dongle(t_dongle *dongle, t_coder *coder)
+bool	is_finished(t_simulation *sim, t_coder *coder)
 {
-	struct timespec	ts;
-	int				stop;
+	int	compiled;
 
-	if (!dongle)
-	{
-		pthread_mutex_lock(&coder->sim->stop_mutex);
-		stop = coder->sim->stop;
-		pthread_mutex_unlock(&coder->sim->stop_mutex);
-		while (!stop)
-		{
-			pthread_mutex_lock(&coder->sim->stop_mutex);
-			stop = coder->sim->stop;
-			pthread_mutex_unlock(&coder->sim->stop_mutex);
-		}
-		return (false);
-	}
-	queue_add(dongle, coder);
-	pthread_mutex_lock(&dongle->mutex);
-	while (dongle->busy || get_time_ms() <= dongle->active_timestamp
-		|| !is_next(dongle, coder, coder->sim))
-	{
-		pthread_mutex_lock(&coder->sim->stop_mutex);
-		if (coder->sim->stop)
-		{
-			pthread_mutex_unlock(&coder->sim->stop_mutex);
-			pthread_mutex_unlock(&dongle->mutex);
-			return (false);
-		}
-		pthread_mutex_unlock(&coder->sim->stop_mutex);
-		ts.tv_sec = dongle->active_timestamp / 1000;
-		ts.tv_nsec = (dongle->active_timestamp % 1000) * 1000000;
-		pthread_cond_timedwait(&dongle->wake_cond, &dongle->mutex, &ts);
-	}
-	dongle->busy = true;
-	pthread_mutex_unlock(&dongle->mutex);
-	thread_print(coder, "has taken a dongle");
-	return (true);
+	pthread_mutex_lock(&coder->mutex);
+	compiled = coder->compile_count;
+	pthread_mutex_unlock(&coder->mutex);
+	return (compiled >= sim->number_of_compiles_required);
 }
 
-void	release_dongle(t_dongle *dongle, t_coder *coder)
+void	get_request_number(t_simulation *sim, t_coder *coder)
 {
-	queue_remove(dongle, coder);
-	pthread_mutex_lock(&dongle->mutex);
-	dongle->busy = 0;
-	dongle->active_timestamp = get_time_ms() + dongle->cooldown;
-	pthread_cond_broadcast(&dongle->wake_cond);
-	pthread_mutex_unlock(&dongle->mutex);
+	pthread_mutex_lock(&sim->request_mutex);
+	sim->request_count++;
+	coder->request_number = sim->request_count;
+	pthread_mutex_unlock(&sim->request_mutex);
+}
+
+bool	should_stop_now(t_simulation *sim)
+{
+	bool	result;
+
+	pthread_mutex_lock(&sim->stop_mutex);
+	result = sim->stop;
+	pthread_mutex_unlock(&sim->stop_mutex);
+	return (result);
 }

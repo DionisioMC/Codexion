@@ -6,7 +6,7 @@
 /*   By: dcoelho <dcoelho@student.42porto.com>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/01 11:36:56 by dcoelho           #+#    #+#             */
-/*   Updated: 2026/09/17 16:16:57 by dcoelho          ###   ########.fr       */
+/*   Updated: 2026/09/22 17:15:47 by dcoelho          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,8 +25,6 @@ void	free_coders(t_coder *coders, t_simulation *sim)
 			pthread_cond_destroy(&coders[i].r_dongle->wake_cond);
 			free(coders[i].r_dongle);
 			coders[i].r_dongle = NULL;
-			free(coders[i].thread);
-			coders[i].thread = NULL;
 			pthread_mutex_destroy(&coders[i].mutex);
 		}
 		i++;
@@ -34,86 +32,124 @@ void	free_coders(t_coder *coders, t_simulation *sim)
 	free(coders);
 }
 
-t_dongle	*gen_dongle(int i, t_simulation *sim, t_coder *coders,
-	pthread_t *monitoring_thread)
+int	gen_dongles(t_simulation *sim)
 {
+	int			i;
 	t_dongle	*dongle;
 
-	dongle = (t_dongle *) malloc(sizeof(t_dongle));
-	if (dongle)
+	i = 0;
+	sim->dongles = (t_dongle *) malloc((sizeof(t_dongle)
+				* sim->number_of_coders));
+	if (!sim->dongles)
+		return (1);
+	while (i < sim->number_of_coders)
 	{
+		dongle = sim->dongles;
 		dongle->id = i + 1;
-		dongle->cooldown = sim->dongle_cooldown;
-		dongle->active_timestamp = sim->start_time;
-		pthread_mutex_init(&dongle->mutex, NULL);
-		pthread_cond_init(&dongle->wake_cond, NULL);
-		return (dongle);
+		dongle->busy = false;
+		dongle->release_timestamp = 0;
+		if (init_dongle_heap(dongle, sim->number_of_coders) == 1
+			|| pthread_mutex_init(&dongle->mutex, NULL)
+			|| pthread_cond_init(&dongle->wake_cond, NULL))
+			return (1);
+		i++;
 	}
-	else
+	return (0);
+}
+
+int	gen_coders(t_simulation *sim)
+{
+	int		i;
+	t_coder	*coder;
+
+	sim->coders = malloc(sizeof(t_coder) * sim->number_of_coders);
+	if (!sim->coders)
 	{
-		dongle_error(i, coders, sim, monitoring_thread);
-		exit(1);
+		fprintf(stderr, "Error: Failed to initialize coders.\n");
+		return (1);
 	}
+	i = 0;
+	while (i < (sim->number_of_coders))
+	{
+		coder = &sim->coders[i];
+		coder->id = i + 1;
+		coder->compile_count = 0;
+		coder->last_compile_start = sim->start_time;
+		coder->sim = sim;
+		coder->l_dongle = &sim->dongles[i];
+		coder->r_dongle = (&sim->dongles[(i + 1)
+				% sim->number_of_coders]);
+		if (pthread_mutex_init(&coder->mutex, NULL) != 0)
+			return (1);
+		i++;
+	}
+	return (0);
 }
 
-long long	get_time_ms(void)
+void	create_threads(t_simulation *sim, pthread_t *monitor_thread)
 {
-	struct timeval	tv;
-
-	gettimeofday(&tv, NULL);
-	return ((tv.tv_sec * 1000) + (tv.tv_usec / 1000));
-}
-
-void	gen_coders_and_dongles(t_coder *coders, t_simulation *sim,
-	pthread_t *monitoring_thread)
-{
-	int				i;
-	t_coder			coder;
+	int	i;
 
 	i = 0;
 	while (i < sim->number_of_coders)
 	{
-		coder.number = i + 1;
-		coder.compile_count = 0;
-		coder.l_dongle = NULL;
-		coder.r_dongle = gen_dongle(i, sim, coders, monitoring_thread);
-		coder.task = COMPILE;
-		coder.last_compile_start = 0;
-		coder.sim = sim;
-		if (i > 0 && i != (sim->number_of_coders - 1))
-			coder.l_dongle = coders[i - 1].r_dongle;
-		else if (i > 0)
-		{
-			coder.l_dongle = coders[i - 1].r_dongle;
-			coders[0].l_dongle = coder.r_dongle;
-		}
-		coders[i] = coder;
-		pthread_mutex_init(&coders[i].mutex, NULL);
+		pthread_create(&sim->coders[i].thread, NULL,
+			coder_thread, &sim->coders[i]);
 		i++;
 	}
+	pthread_create(monitor_thread, NULL, mon_thread, sim);
+}
+
+void	join_threads(t_simulation *sim, pthread_t monitor_thread)
+{
+	int	i;
+
+	i = 0;
+	while (i < sim->number_of_coders)
+	{
+		pthread_join(sim->coders[i].thread, NULL);
+		i++;
+	}
+	pthread_join(monitor_thread, NULL);
+}
+
+void	cleanup_simulation(t_simulation *sim)
+{
+	int			id;
+	t_dongle	*dongle;
+
+	id = 0;
+	while (id < sim->number_of_coders)
+	{
+		dongle = &sim->dongles[id];
+		free(dongle->heap.data);
+		pthread_mutex_destroy(&dongle->mutex);
+		pthread_cond_destroy(&dongle->wake_cond);
+		pthread_mutex_destroy(&sim->coders[id].mutex);
+		id++;
+	}
+	pthread_mutex_destroy(&sim->log_mutex);
+	pthread_mutex_destroy(&sim->stop_mutex);
+	pthread_mutex_destroy(&sim->request_mutex);
+	free(sim->dongles);
+	free(sim->coders);
 }
 
 int	main(int argc, char **argv)
 {
-	t_coder			*coders;
-	t_simulation	*sim;
-	pthread_t		*monitoring_thread;
-	int				i;
+	t_simulation	sim;
+	pthread_t		monitoring_thread;
+	char			**parsed_args;
 
-	i = 0;
-	sim = parser(argc, argv);
-	sim->start_time = get_time_ms();
-	coders = (t_coder *)malloc(sizeof(t_coder) * sim->number_of_coders);
-	monitoring_thread = (pthread_t *)malloc(sizeof(pthread_t));
-	if (coders && monitoring_thread)
-		gen_simulation(coders, sim, monitoring_thread);
-	else
+	parsed_args = args_verify(argc, argv);
+	if (!parsed_args)
+		return (1);
+	if (gen_simulation(&sim, parsed_args) == 1)
 	{
-		pthread_mutex_destroy(&sim->stop_mutex);
-		pthread_mutex_destroy(&sim->log_mutex);
-		free(monitoring_thread);
-		free_coders(coders, sim);
-		free(sim);
-		exit(1);
+		fprintf(stderr, "Error: Simulation failed to be initialized.\n");
+		return (1);
 	}
+	create_threads(&sim, &monitoring_thread);
+	join_threads(&sim, monitoring_thread);
+	cleanup_simulation(&sim);
 }
