@@ -6,7 +6,7 @@
 /*   By: dcoelho <dcoelho@student.42porto.com>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/12 15:01:55 by dcoelho           #+#    #+#             */
-/*   Updated: 2026/09/22 17:04:38 by dcoelho          ###   ########.fr       */
+/*   Updated: 2026/09/24 15:55:12 by dcoelho          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,7 +25,7 @@ int	is_int(char *str)
 		if (value > 2147483647)
 		{
 			fprintf(stderr, "Parsing Error: A value exceeded "
-				"the INT_MAX limits.\n");
+				"the INT_MAX limit.\n");
 			return (1);
 		}
 		i++;
@@ -44,14 +44,14 @@ int	are_valid_numbers(int argc, char **argv)
 		j = 0;
 		while (argv[i][j])
 		{
-			if ((argv[i][j] >= '0') && argv[i][j] <= '9')
+			if ((argv[i][j] >= '0' && argv[i][j] <= '9') || argv[i][j] == '-')
 				j++;
 			else
 				return (1);
 		}
 		if (is_int(argv[i]) == 1)
 			return (1);
-		if (atoi(argv[i]) == 0)
+		if (atoi(argv[i]) < 0)
 		{
 			fprintf(stderr, "Parsing Error: Values need to be "
 				"higher or equal to zero.\n");
@@ -66,14 +66,21 @@ int	has_valid_scheduler(char *str)
 {
 	if ((strcmp(str, "fifo") == 0) || (strcmp(str, "edf") == 0))
 		return (0);
-	fprintf(stderr, "Parsing Error: Invalid scheduler.\n");
+	fprintf(stderr, "Parsing Error: Invalid scheduler, "
+		"needs to be fifo or edf.\n");
 	return (1);
 }
 
 char	**args_verify(int argc, char **argv)
 {
 	if (argc -1 != 8)
+	{
+		fprintf(stderr, "Error: Incorrect usage\n");
+		fprintf(stderr, "Usage: ./codexion number_of_coders time_to_burnout "
+			"time_to_compile time_to_debug time_to_refactor "
+			"number_of_compiles_required dongle_cooldown scheduler\n");
 		return (NULL);
+	}
 	if ((are_valid_numbers(argc, argv) == 1)
 		|| (has_valid_scheduler(argv[8]) == 1))
 		return (NULL);
@@ -99,9 +106,9 @@ int	gen_simulation(t_simulation *sim, char **args)
 		return (1);
 	if (pthread_mutex_init(&sim->stop_mutex, NULL) != 0)
 		return (1);
-	if (pthread_mutex_init(&sim->log_mutex, NULL))
+	if (pthread_mutex_init(&sim->log_mutex, NULL) != 0)
 		return (1);
-	if (pthread_mutex_init(&sim->request_mutex, NULL))
+	if (pthread_mutex_init(&sim->request_mutex, NULL) != 0)
 		return (1);
 	return (0);
 }

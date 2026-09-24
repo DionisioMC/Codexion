@@ -6,7 +6,7 @@
 /*   By: dcoelho <dcoelho@student.42porto.com>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/10 15:57:44 by dcoelho           #+#    #+#             */
-/*   Updated: 2026/09/22 11:35:48 by dcoelho          ###   ########.fr       */
+/*   Updated: 2026/09/24 12:19:38 by dcoelho          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -50,4 +50,29 @@ bool	should_stop_now(t_simulation *sim)
 	result = sim->stop;
 	pthread_mutex_unlock(&sim->stop_mutex);
 	return (result);
+}
+
+int	gen_dongles(t_simulation *sim)
+{
+	int			i;
+	t_dongle	*dongle;
+
+	i = 0;
+	sim->dongles = (t_dongle *) malloc((sizeof(t_dongle)
+				* sim->number_of_coders));
+	if (!sim->dongles)
+		return (1);
+	while (i < sim->number_of_coders)
+	{
+		dongle = &sim->dongles[i];
+		dongle->id = i + 1;
+		dongle->busy = false;
+		dongle->release_timestamp = 0;
+		if (init_dongle_heap(dongle, sim->number_of_coders) == 1
+			|| pthread_mutex_init(&dongle->mutex, NULL) != 0
+			|| pthread_cond_init(&dongle->wake_cond, NULL) != 0)
+			return (1);
+		i++;
+	}
+	return (0);
 }

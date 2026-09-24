@@ -6,49 +6,33 @@
 /*   By: dcoelho <dcoelho@student.42porto.com>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/21 12:07:29 by dcoelho           #+#    #+#             */
-/*   Updated: 2026/09/22 17:06:22 by dcoelho          ###   ########.fr       */
+/*   Updated: 2026/09/24 14:11:11 by dcoelho          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "codexion.h"
 
-void	*coder_thread(void *coder)
+void	*coder_thread(void *arg)
 {
-	t_coder	*coder_original;
+	t_coder			*coder;
+	t_simulation	*sim;
 
-	coder_original = (t_coder *) coder;
-	while (1)
+	coder = (t_coder *) arg;
+	sim = coder->sim;
+	while (!should_stop_now(sim))
 	{
-		pthread_mutex_lock(&coder_original->sim->stop_mutex);
-		if (coder_original->sim->stop)
-		{
-			pthread_mutex_unlock(&coder_original->sim->stop_mutex);
+		if (!coder_compile(sim, coder))
 			break ;
-		}
-		pthread_mutex_unlock(&coder_original->sim->stop_mutex);
-		if (coder_original->task == COMPILE)
-			coder_compile(coder_original);
-		else if (coder_original->task == DEBUG)
-			coder_debug(coder_original);
-		else
-			coder_refactor(coder_original);
+		if (should_stop_now(sim))
+			break ;
+		thread_print(coder, "is debugging");
+		usleep(coder->sim->time_to_debug * 1000);
+		if (should_stop_now(sim))
+			break ;
+		thread_print(coder, "is refactoring");
+		usleep(coder->sim->time_to_refactor * 1000);
 	}
 	return (NULL);
-}
-
-void	gen_coder_threads(t_coder *coders, t_simulation *sim)
-{
-	int	i;
-
-	i = 0;
-	while (i < sim->number_of_coders)
-	{
-		coders[i].thread = (pthread_t *)malloc(sizeof(pthread_t));
-		if (!coders[i].thread)
-			thread_error(sim, coders, i);
-		pthread_create(coders[i].thread, NULL, coder_thread, &coders[i]);
-		i++;
-	}
 }
 
 void	*mon_thread(void *arg)

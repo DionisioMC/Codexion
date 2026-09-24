@@ -6,7 +6,7 @@
 /*   By: dcoelho <dcoelho@student.42porto.com>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/07 12:18:43 by dcoelho           #+#    #+#             */
-/*   Updated: 2026/09/22 11:45:43 by dcoelho          ###   ########.fr       */
+/*   Updated: 2026/09/24 17:01:36 by dcoelho          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,7 +28,7 @@ bool	check_coders(t_simulation *sim)
 			pthread_mutex_lock(&sim->stop_mutex);
 			sim->stop = true;
 			pthread_mutex_unlock(&sim->stop_mutex);
-			thread_print(coder, "is burned out");
+			thread_print(coder, "burned out");
 			return (true);
 		}
 		if (!is_finished(sim, coder))
@@ -38,45 +38,27 @@ bool	check_coders(t_simulation *sim)
 	return (all_finished);
 }
 
-void	coder_compile(t_coder *coder)
+bool	coder_compile(t_simulation *sim, t_coder *coder)
 {
-	if (!take_both_dongles(coder))
-		return ;
+	if (!take_both_dongles(sim, coder))
+		return (false);
 	pthread_mutex_lock(&coder->mutex);
 	coder->last_compile_start = get_time_ms();
 	pthread_mutex_unlock(&coder->mutex);
-	pthread_mutex_lock(&coder->sim->stop_mutex);
-	if (!coder->sim->stop)
-		thread_print(coder, "is compiling");
-	pthread_mutex_unlock(&coder->sim->stop_mutex);
+	thread_print(coder, "is compiling");
 	usleep(coder->sim->time_to_compile * 1000);
-	release_both_dongles(coder);
 	pthread_mutex_lock(&coder->mutex);
 	coder->compile_count++;
-	coder->task = DEBUG;
 	pthread_mutex_unlock(&coder->mutex);
+	release_both_dongles(coder);
+	return (true);
 }
 
-void	coder_debug(t_coder *coder)
+void	ft_swap(t_coder **coder_a, t_coder **coder_b)
 {
-	pthread_mutex_lock(&coder->sim->stop_mutex);
-	if (!coder->sim->stop)
-		thread_print(coder, "is debugging");
-	pthread_mutex_unlock(&coder->sim->stop_mutex);
-	usleep(coder->sim->time_to_debug * 1000);
-	pthread_mutex_lock(&coder->mutex);
-	coder->task = REFACTOR;
-	pthread_mutex_unlock(&coder->mutex);
-}
+	t_coder	*temp;
 
-void	coder_refactor(t_coder *coder)
-{
-	pthread_mutex_lock(&coder->sim->stop_mutex);
-	if (!coder->sim->stop)
-		thread_print(coder, "is refactoring");
-	pthread_mutex_unlock(&coder->sim->stop_mutex);
-	usleep(coder->sim->time_to_refactor * 1000);
-	pthread_mutex_lock(&coder->mutex);
-	coder->task = COMPILE;
-	pthread_mutex_unlock(&coder->mutex);
+	temp = *coder_a;
+	*coder_a = *coder_b;
+	*coder_b = temp;
 }
