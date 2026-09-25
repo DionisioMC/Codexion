@@ -6,11 +6,20 @@
 /*   By: dcoelho <dcoelho@student.42porto.com>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/22 11:26:50 by dcoelho           #+#    #+#             */
-/*   Updated: 2026/09/22 11:58:39 by dcoelho          ###   ########.fr       */
+/*   Updated: 2026/09/25 12:23:36 by dcoelho          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "codexion.h"
+
+void	ft_swap(t_coder **coder_a, t_coder **coder_b)
+{
+	t_coder	*temp;
+
+	temp = *coder_a;
+	*coder_a = *coder_b;
+	*coder_b = temp;
+}
 
 long long	get_time_ms(void)
 {

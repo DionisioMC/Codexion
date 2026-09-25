@@ -6,7 +6,7 @@
 /*   By: dcoelho <dcoelho@student.42porto.com>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/01 11:38:44 by dcoelho           #+#    #+#             */
-/*   Updated: 2026/09/24 15:04:10 by dcoelho          ###   ########.fr       */
+/*   Updated: 2026/09/25 12:32:50 by dcoelho          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,7 +33,7 @@ typedef struct s_dongle
 	int				id;
 	bool			busy;
 	int				cooldown;
-	long long		release_timestamp;
+	long long		release_ts;
 	t_heap			heap;
 	pthread_mutex_t	mutex;
 	pthread_cond_t	wake_cond;
@@ -77,19 +77,15 @@ char			**args_verify(int argc, char **argv);
 void			*coder_thread(void *work);
 long long		get_time_ms(void);
 int				gen_coders(t_simulation *sim);
-void			*mon_thread(void *coders);
-bool			coder_compile(t_simulation *sim, t_coder *coder);
+void			*mon_thread(void *arg);
 int				gen_simulation(t_simulation *sim, char **args);
 bool			take_both_dongles(t_simulation *sim, t_coder *coder);
 void			release_both_dongles(t_coder *coder);
-bool			check_coders(t_simulation *sim);
 long long		compute_deadline(t_coder *coder);
 void			thread_print(t_coder *coder, char *string);
-void			release_dongle(t_dongle *dongle);
 void			min_heap_push(t_simulation *sim, t_heap *heap,
 					t_coder *coder);
 void			min_heap_pop(t_heap *heap, t_simulation *sim);
-long long		priority_tie_breaker(t_simulation *sim, t_coder *coder);
 bool			should_stop_now(t_simulation *sim);
 void			ft_swap(t_coder **coder_a, t_coder **coder_b);
 bool			is_burned_out(t_coder *coder, t_simulation *sim);

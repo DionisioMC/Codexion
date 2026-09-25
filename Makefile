@@ -4,7 +4,7 @@ CC = cc
 
 CFLAGS = -Wall -Wextra -Werror -pthread -g
 
-FILES = main.c parsing.c thread.c thread_utils.c dongle.c \
+FILES = main.c parsing.c thread.c dongle.c \
 		 dongle_utils.c heap.c scheduler.c
 
 OBJ = $(FILES:.c=.o)

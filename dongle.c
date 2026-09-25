@@ -6,7 +6,7 @@
 /*   By: dcoelho <dcoelho@student.42porto.com>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/10 14:38:23 by dcoelho           #+#    #+#             */
-/*   Updated: 2026/09/24 15:03:39 by dcoelho          ###   ########.fr       */
+/*   Updated: 2026/09/25 12:00:01 by dcoelho          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,15 +20,15 @@ void	take_dongle(t_simulation *sim, t_dongle *dongle, t_coder *coder)
 	pthread_mutex_lock(&dongle->mutex);
 	coder->priority_ts = compute_deadline(coder);
 	get_request_number(sim, coder);
-	remaining_cooldown = get_time_ms() - dongle->release_timestamp;
+	remaining_cooldown = get_time_ms() - dongle->release_ts;
 	min_heap_push(sim, &dongle->heap, coder);
 	while ((dongle->busy || remaining_cooldown < sim->dongle_cooldown
 			|| dongle->heap.data[0] != coder) && !should_stop_now(sim))
 	{
-		ts.tv_sec = dongle->release_timestamp / 1000;
-		ts.tv_nsec = (dongle->release_timestamp % 1000) * 1000000;
+		ts.tv_sec = dongle->release_ts / 1000;
+		ts.tv_nsec = (dongle->release_ts % 1000) * 1000000;
 		pthread_cond_timedwait(&dongle->wake_cond, &dongle->mutex, &ts);
-		remaining_cooldown = get_time_ms() - dongle->release_timestamp;
+		remaining_cooldown = get_time_ms() - dongle->release_ts;
 	}
 	if (should_stop_now(sim))
 	{
@@ -53,7 +53,7 @@ bool	take_both_dongles(t_simulation *sim, t_coder *coder)
 			usleep(1000);
 		return (false);
 	}
-	if (coder->l_dongle->id < coder->r_dongle->id)
+	if (coder->id % 2 == 0)
 	{
 		first = coder->l_dongle;
 		second = coder->r_dongle;
@@ -74,7 +74,7 @@ void	release_dongle(t_dongle *dongle)
 {
 	pthread_mutex_lock(&dongle->mutex);
 	dongle->busy = false;
-	dongle->release_timestamp = get_time_ms();
+	dongle->release_ts = get_time_ms();
 	pthread_cond_broadcast(&dongle->wake_cond);
 	pthread_mutex_unlock(&dongle->mutex);
 }

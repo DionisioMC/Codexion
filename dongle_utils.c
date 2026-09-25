@@ -6,7 +6,7 @@
 /*   By: dcoelho <dcoelho@student.42porto.com>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/10 15:57:44 by dcoelho           #+#    #+#             */
-/*   Updated: 2026/09/24 12:19:38 by dcoelho          ###   ########.fr       */
+/*   Updated: 2026/09/25 11:57:39 by dcoelho          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,13 +14,11 @@
 
 bool	is_burned_out(t_coder *coder, t_simulation *sim)
 {
-	long long	last_compile;
 	long long	time_since_compile;
 
 	pthread_mutex_lock(&coder->mutex);
-	last_compile = coder->last_compile_start;
+	time_since_compile = get_time_ms() - coder->last_compile_start;
 	pthread_mutex_unlock(&coder->mutex);
-	time_since_compile = get_time_ms() - last_compile;
 	return (time_since_compile >= sim->time_to_burnout);
 }
 
@@ -67,7 +65,7 @@ int	gen_dongles(t_simulation *sim)
 		dongle = &sim->dongles[i];
 		dongle->id = i + 1;
 		dongle->busy = false;
-		dongle->release_timestamp = 0;
+		dongle->release_ts = 0;
 		if (init_dongle_heap(dongle, sim->number_of_coders) == 1
 			|| pthread_mutex_init(&dongle->mutex, NULL) != 0
 			|| pthread_cond_init(&dongle->wake_cond, NULL) != 0)
